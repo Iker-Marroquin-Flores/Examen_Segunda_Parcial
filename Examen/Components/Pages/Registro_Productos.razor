@@ -1,0 +1,125 @@
+﻿@page "/registro-productos"
+@rendermode InteractiveServer  
+<div class="container">
+    <h3>Registro de productos</h3>
+
+    <div class="mb-3">
+        <label>No. de inventario</label>
+        <input type="number" class="form-control" @bind="nuevoNoInventario" />
+    </div>
+
+    <div class="mb-3">
+        <label>Descripción</label>
+        <input type="text" class="form-control" placeholder="Escribe la descripción del producto" @bind="nuevaDescripcion" />
+    </div>
+
+    <div class="mb-3">
+        <label>Departamento</label><br />
+        <input type="radio" name="depto" checked="@(nuevoDepto == "Frutas")" @onclick='() => nuevoDepto = "Frutas"' /> Frutas
+        <input type="radio" name="depto" checked="@(nuevoDepto == "Verduras")" @onclick='() => nuevoDepto = "Verduras"' /> Verduras
+        <input type="radio" name="depto" checked="@(nuevoDepto == "Lácteos")" @onclick='() => nuevoDepto = "Lácteos"' /> Lácteos
+    </div>
+
+    <div class="btn-group mb-3">
+        <button class="btn btn-success me-2 mb-2" @onclick="GuardarDatos">Guardar datos</button>
+        <button class="btn btn-success me-2 mb-2" @onclick="MostrarTodaLaLista">Lista completa</button>
+        <button class="btn btn-success me-2 mb-2" @onclick='() => FiltrarPorDepto("Frutas")'>Lista de frutas</button>
+        <button class="btn btn-success me-2 mb-2" @onclick='() => FiltrarPorDepto("Verduras")'>Lista de verduras</button>
+        <button class="btn btn-success me-2 mb-2" @onclick='() => FiltrarPorDepto("Lácteos")'>Lista de lácteos</button>
+    </div>
+
+    @if (listaAMostrar != null)
+    {
+        <table class="table table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>No. Inventario</th>
+                    <th>Descripción</th>
+                    <th>Departamento</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in listaAMostrar)
+                {
+                    <tr>
+                        <td>@p.NoInventario</td>
+                        <td>@p.Descripcion</td>
+                        <td>@p.Departamento</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button class="btn btn-success" @onclick="CerrarLista">Cerrar lista</button>
+    }
+
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger mt-2">@mensajeError</div>
+    }
+</div>
+
+@code {
+    public class Producto
+    {
+        public int NoInventario { get; set; }
+        // El "?" evita el error de "no acepta valores NULL"
+        public string? Descripcion { get; set; }
+        public string? Departamento { get; set; }
+    }
+
+    private int nuevoNoInventario;
+    private string nuevaDescripcion = "";
+    private string nuevoDepto = "Frutas";
+    private string mensajeError = "";
+
+    private List<Producto> inventarioGlobal = new List<Producto>();
+    private List<Producto>? listaAMostrar = null;
+
+    private void GuardarDatos()
+    {
+        mensajeError = "";
+
+
+        bool yaExiste = false;
+        foreach (var p in inventarioGlobal)
+        {
+            if (p.NoInventario == nuevoNoInventario)
+            {
+                yaExiste = true;
+                break;
+            }
+        }
+
+        if (yaExiste)
+        {
+            mensajeError = "El número de inventario ya existe. No se grabó el registro.";
+            return;
+        }
+
+        inventarioGlobal.Add(new Producto
+        {
+            NoInventario = nuevoNoInventario,
+            Descripcion = nuevaDescripcion,
+            Departamento = nuevoDepto
+        });
+
+        nuevoNoInventario = 0;
+        nuevaDescripcion = "";
+    }
+
+    private void MostrarTodaLaLista() => listaAMostrar = inventarioGlobal;
+
+    private void FiltrarPorDepto(string depto)
+    {
+        listaAMostrar = new List<Producto>();
+        foreach (var p in inventarioGlobal)
+        {
+            if (p.Departamento == depto)
+            {
+                listaAMostrar.Add(p);
+            }
+        }
+    }
+
+    private void CerrarLista() => listaAMostrar = null;
+}
