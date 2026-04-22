@@ -1,10 +1,12 @@
 ﻿@page "/registro-productos"
-@rendermode InteractiveServer  
+@rendermode InteractiveServer
+
 <div class="container">
     <h3>Registro de productos</h3>
 
     <div class="mb-3">
         <label>No. de inventario</label>
+
         <input type="number" class="form-control" @bind="nuevoNoInventario" />
     </div>
 
@@ -15,20 +17,20 @@
 
     <div class="mb-3">
         <label>Departamento</label><br />
-        <input type="radio" name="depto" checked="@(nuevoDepto == "Frutas")" @onclick='() => nuevoDepto = "Frutas"' /> Frutas
-        <input type="radio" name="depto" checked="@(nuevoDepto == "Verduras")" @onclick='() => nuevoDepto = "Verduras"' /> Verduras
-        <input type="radio" name="depto" checked="@(nuevoDepto == "Lácteos")" @onclick='() => nuevoDepto = "Lácteos"' /> Lácteos
+        <input type="radio" name="depto" checked='@(nuevoDepto == "Frutas")' @onclick='() => nuevoDepto = "Frutas"' /> Frutas
+        <input type="radio" name="depto" checked='@(nuevoDepto == "Verduras")' @onclick='() => nuevoDepto = "Verduras"' /> Verduras
+        <input type="radio" name="depto" checked='@(nuevoDepto == "Lácteos")' @onclick='() => nuevoDepto = "Lácteos"' /> Lácteos
     </div>
 
-    <div class="btn-group mb-3">
+    <div class="mb-3">
         <button class="btn btn-success me-2 mb-2" @onclick="GuardarDatos">Guardar datos</button>
         <button class="btn btn-success me-2 mb-2" @onclick="MostrarTodaLaLista">Lista completa</button>
-        <button class="btn btn-success me-2 mb-2" @onclick='() => FiltrarPorDepto("Frutas")'>Lista de frutas</button>
-        <button class="btn btn-success me-2 mb-2" @onclick='() => FiltrarPorDepto("Verduras")'>Lista de verduras</button>
-        <button class="btn btn-success me-2 mb-2" @onclick='() => FiltrarPorDepto("Lácteos")'>Lista de lácteos</button>
+        <button class="btn btn-success me-2 mb-2" @onclick='() => Filtrar("Frutas")'>Lista de frutas</button>
+        <button class="btn btn-success me-2 mb-2" @onclick='() => Filtrar("Verduras")'>Lista de verduras</button>
+        <button class="btn btn-success me-2 mb-2" @onclick='() => Filtrar("Lácteos")'>Lista de lácteos</button>
     </div>
 
-    @if (listaAMostrar != null)
+    @if (mostrarTabla)
     {
         <table class="table table-striped mt-3">
             <thead>
@@ -39,87 +41,88 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var p in listaAMostrar)
+                @for (int i = 0; i < idsFiltrados.Count; i++)
                 {
                     <tr>
-                        <td>@p.NoInventario</td>
-                        <td>@p.Descripcion</td>
-                        <td>@p.Departamento</td>
+                        <td>@idsFiltrados[i]</td>
+                        <td>@descFiltradas[i]</td>
+                        <td>@deptosFiltrados[i]</td>
                     </tr>
                 }
             </tbody>
         </table>
-        <button class="btn btn-success" @onclick="CerrarLista">Cerrar lista</button>
+        <button class="btn btn-success" @onclick="() => mostrarTabla = false">Cerrar lista</button>
     }
 
-    @if (!string.IsNullOrEmpty(mensajeError))
+    @if (mensajeError != "")
     {
         <div class="alert alert-danger mt-2">@mensajeError</div>
     }
 </div>
 
 @code {
-    public class Producto
-    {
-        public int NoInventario { get; set; }
-        // El "?" evita el error de "no acepta valores NULL"
-        public string? Descripcion { get; set; }
-        public string? Departamento { get; set; }
-    }
-
     private int nuevoNoInventario;
     private string nuevaDescripcion = "";
     private string nuevoDepto = "Frutas";
     private string mensajeError = "";
+    private bool mostrarTabla = false;
 
-    private List<Producto> inventarioGlobal = new List<Producto>();
-    private List<Producto>? listaAMostrar = null;
+    // Colecciones dinámicas para almacenar datos (Listas paralelas) [cite: 572, 574, 579]
+    private List<int> listaIds = new List<int>();
+    private List<string> listaDescripciones = new List<string>();
+    private List<string> listaDepartamentos = new List<string>();
+
+    // Listas para el proceso de filtrado y visualización
+    private List<int> idsFiltrados = new List<int>();
+    private List<string> descFiltradas = new List<string>();
+    private List<string> deptosFiltrados = new List<string>();
 
     private void GuardarDatos()
     {
         mensajeError = "";
 
-
-        bool yaExiste = false;
-        foreach (var p in inventarioGlobal)
-        {
-            if (p.NoInventario == nuevoNoInventario)
-            {
-                yaExiste = true;
-                break;
-            }
-        }
-
-        if (yaExiste)
+        // Validación de ID único usando el método Contains de colecciones [cite: 599, 601]
+        if (listaIds.Contains(nuevoNoInventario))
         {
             mensajeError = "El número de inventario ya existe. No se grabó el registro.";
-            return;
+            return; // Salida inmediata de la instrucción [cite: 567]
         }
 
-        inventarioGlobal.Add(new Producto
-        {
-            NoInventario = nuevoNoInventario,
-            Descripcion = nuevaDescripcion,
-            Departamento = nuevoDepto
-        });
+        // Agregar elementos a las colecciones con Add() [cite: 576, 580]
+        listaIds.Add(nuevoNoInventario);
+        listaDescripciones.Add(nuevaDescripcion);
+        listaDepartamentos.Add(nuevoDepto);
 
+        // Limpieza de campos
         nuevoNoInventario = 0;
         nuevaDescripcion = "";
     }
 
-    private void MostrarTodaLaLista() => listaAMostrar = inventarioGlobal;
-
-    private void FiltrarPorDepto(string depto)
+    private void MostrarTodaLaLista()
     {
-        listaAMostrar = new List<Producto>();
-        foreach (var p in inventarioGlobal)
-        {
-            if (p.Departamento == depto)
-            {
-                listaAMostrar.Add(p);
-            }
-        }
+        // Limpiar y copiar todos los elementos [cite: 606]
+        idsFiltrados = new List<int>(listaIds);
+        descFiltradas = new List<string>(listaDescripciones);
+        deptosFiltrados = new List<string>(listaDepartamentos);
+        mostrarTabla = true;
     }
 
-    private void CerrarLista() => listaAMostrar = null;
+    private void Filtrar(string depto)
+    {
+        idsFiltrados.Clear();
+        descFiltradas.Clear();
+        deptosFiltrados.Clear();
+
+        // Recorrido secuencial para filtrar por departamento [cite: 543, 560]
+        for (int i = 0; i < listaIds.Count; i++)
+        {
+            if (listaDepartamentos[i] == depto)
+            {
+                idsFiltrados.Add(listaIds[i]);
+                descFiltradas.Add(listaDescripciones[i]);
+                deptosFiltrados.Add(listaDepartamentos[i]);
+            }
+        }
+        mostrarTabla = true;
+    }
 }
